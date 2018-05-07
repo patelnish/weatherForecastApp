@@ -1,7 +1,7 @@
 # Nisha Patel
 # Code File to Create R Shiny App
 # App: Hourly Temperature Forecast (Powered by Dark Sky: https://darksky.net/poweredby/)
-
+# Find helper functions in "helpers.R"
 
 #----------- Load helper functions & load packages ---------------------#
 packagesList <- c("tidyverse", "lubridate", "stringr","jsonlite", 

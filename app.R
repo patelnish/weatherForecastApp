@@ -1,16 +1,19 @@
 # Nisha Patel
-# Code File for Dark Sky API weather forecasting
+# Code File to Create R Shiny App
+# App: Hourly Temperature Forecast (Powered by Dark Sky: https://darksky.net/poweredby/)
 
 
 #----------- Load helper functions & load packages ---------------------#
-source("helpers.R")
 packagesList <- c("tidyverse", "lubridate", "stringr","jsonlite", 
                   "zipcode", "modelr", "leaflet", "shiny" )
 lapply(packagesList, installPackages)
+source("helpers.R")
+data("zipcode")
 #---------------------------------------------------------#
 
 ui <- fluidPage(
   
+  # CSS related code to style app page
   tags$head(
     tags$style(HTML("
                     @import url('//fonts.googleapis.com/css?family=Lobster|Cabin:400,700');
@@ -19,8 +22,8 @@ ui <- fluidPage(
                     "#sidebar {
                       background-color: #3877D6;
                       font-family: 'Arial Black';
+                      font-weight:200;
                      
-
                     }"
                     
                     ))
@@ -29,13 +32,16 @@ ui <- fluidPage(
   
   theme = "bootstrapDarkTheme.css",
   titlePanel( h1(" Hourly Weather Forecast App", 
-                 style = "font-family: 'lobster', cursive; font-weight: 600; 
+                 style = "font-family: 'lobster', cursive; font-weight: 400; 
                          color: #3877D6;")),
   
   sidebarLayout(
     
     sidebarPanel(id = "sidebar",
+                 
       fluidRow(
+        
+        # Zip input, forecast, plot title input, and download plot buttons
         column(6, numericInput(inputId = 'zip', label = "Enter Your Zipcode", value = 0
                                ),
                actionButton(inputId = 'forecast', label= 'Forecast')),
@@ -44,13 +50,16 @@ ui <- fluidPage(
                
                downloadButton(outputId = "download_plot", label = "Download Plot"))
         
-      ) ,# end fluidRow,
+      ) , # end fluidRow
       
+      # Note: Attribution to Dark Sky
       fluidRow(tags$a(href = "https://darksky.net/poweredby/", "Powered by Dark Sky"))
       
-    ), # end Sidebar Panel
+    ), # end sidebar panel
     
     mainPanel(
+      
+      # First tab is forecast plot, second tab has leaflet map of location 
       tabsetPanel(type = "tabs",
                   
                   tabPanel("Forecast Plot", plotOutput(outputId = "location")),
@@ -63,56 +72,42 @@ ui <- fluidPage(
     
     
     
-  ) # end Sidebar layout
+  ) # end sidebar layout
   
-  
- 
- 
+
   
 ) # end UI
 
 
 server <- function(input, output){
   
-  
-  
-  out <- eventReactive(input$forecast, { 
-    print("clicked")
+  # After zip input, if user clicks forecast, then hourly temp plot will be generated
+  out_plot <- eventReactive(input$forecast, { 
     
-    
-    location_output(input$zip)
+    location_plot_output(input$zip)
      
   })
   
-  
-  out2 <- eventReactive(input$forecast, {
+  # After zip input, if user clicks forecast, then leaflet map of input location will be generated
+  out_leaflet <- eventReactive(input$forecast, {
     
-    data("zipcode")
-    
-    # Step 1 - Obtain zipcode information
-    location =  zipcode %>% filter(zip == input$zip)
-    
-    user_latitude = location$latitude
-    user_longitude = location$longitude
-    user_city = str_c(location$city, location$state, sep = ",")
-    
-    
-    m <- leaflet() %>% addTiles() %>% addMarkers(lng = user_longitude,
-                                                 lat = user_latitude)
-    m
+    location_leaflet_output(input$zip)
     
   })
   
+  # Show plot 
+  output$map <- renderLeaflet(out_leaflet())
   
-  output$map <- renderLeaflet(out2())
-  
-  
-  output$location <- renderPlot(out())
+  # Show leaflet
+  output$location <- renderPlot(out_plot())
  
+  
+  # Enable downloading and saving of plot
   output$download_plot <- downloadHandler(
     
     filename = function() {
       
+      # Let user choose title for saving plot based on input
       str_c(input$plot_title, ".jpg", sep = "")
       
       },
@@ -123,10 +118,8 @@ server <- function(input, output){
       
       }
     
-    
   )
     
-
   
  
 } # end server

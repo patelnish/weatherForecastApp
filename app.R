@@ -3,11 +3,12 @@
 # App: Hourly Temperature Forecast (Powered by Dark Sky: https://darksky.net/poweredby/)
 # Find helper functions in "helpers.R"
 
+
 #----------- Load helper functions & load packages ---------------------#
+source("helpers.R")
 packagesList <- c("tidyverse", "lubridate", "stringr","jsonlite", 
                   "zipcode", "modelr", "leaflet", "shiny" )
 lapply(packagesList, installPackages)
-source("helpers.R")
 data("zipcode")
 #---------------------------------------------------------#
 

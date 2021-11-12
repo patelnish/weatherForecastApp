@@ -22,7 +22,7 @@ location_plot_output <- function(zip_input){
   
 
   # Obtain zipcode from user and get associated entry in zipcode dataset
-  location =  zipcode %>% filter(zip == zip_input)
+  location =  zipcodes %>% filter(zip == zip_input)
   
   
   # No zipcode provided yet by user, then return null
@@ -32,8 +32,8 @@ location_plot_output <- function(zip_input){
   }
   
   
-  user_latitude = location$latitude
-  user_longitude = location$longitude
+  user_latitude = location$lat
+  user_longitude = location$long
   user_city = str_c(location$city, location$state, sep = ",")
  
   
@@ -53,7 +53,7 @@ generate_plot <- function(user_lat, user_long, user_city){
   
   
   #API request
-  secret_key = "<REPLACE WITH VALID SECRET KEY>"
+  secret_key = "f25ffdcabb20bff27edea5afb5750d96"
   
   request = str_c(
     # BASE URL
@@ -114,15 +114,15 @@ generate_plot <- function(user_lat, user_long, user_city){
 location_leaflet_output <- function(zip_input){
 
   # Obtain zipcode from user and get associated entry in zipcode dataset
-  location =  zipcode %>% filter(zip == zip_input)
+  location =  zipcodes %>% filter(zip == zip_input)
   
   # No zipcode provided yet by user, then return null
   if(nrow(location) > 1){
     return(NULL)
   }
 
-  user_latitude = location$latitude
-  user_longitude = location$longitude
+  user_latitude = location$lat
+  user_longitude = location$long
   user_city = str_c(location$city, location$state, sep = ",")
   
   m <- leaflet() %>% addTiles() %>% addMarkers(lng = user_longitude,

@@ -7,9 +7,9 @@
 #----------- Load helper functions & load packages ---------------------#
 source("helpers.R")
 packagesList <- c("tidyverse", "lubridate", "stringr","jsonlite", 
-                  "zipcode", "modelr", "leaflet", "shiny" )
+                  "usa", "modelr", "leaflet", "shiny" )
 lapply(packagesList, installPackages)
-data("zipcode")
+data("zipcodes")
 #---------------------------------------------------------#
 
 ui <- fluidPage(

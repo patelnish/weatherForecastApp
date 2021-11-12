@@ -53,7 +53,7 @@ generate_plot <- function(user_lat, user_long, user_city){
   
   
   #API request
-  secret_key = "f25ffdcabb20bff27edea5afb5750d96"
+  secret_key = "<REPLACE WITH VALID SECRET KEY>"
   
   request = str_c(
     # BASE URL

@@ -1,13 +1,14 @@
 # Nisha Patel
 # This file contains helper functions for app.R - creating an Hourly Weather Forecasting App
 
+
 #----------Helper function to install necessary packages----------#
 installPackages <- function(pack) { 
   
   # Install package if it is not already
   if (!(pack %in% installed.packages()[, "Package"])){ 
     
-    install.packages(pack, repos='http://cran.us.r-project.org')
+    install.packages(pack, repos='http://cloud.r-project.org')
   }
   
   library(pack, character.only = TRUE)
@@ -16,116 +17,72 @@ installPackages <- function(pack) {
 } # end installPackages()
 
 
-#----------Helper function to use zipcode data set to get latitude and longitude,
-# and generate plot of hourly temperature----------#
-location_plot_output <- function(zip_input){
+#----------Helper function to take in user zipcode input and get latitude and longitude
+location_plot_output <- function(zipcode_input){
   
-
-  # Obtain zipcode from user and get associated entry in zipcode dataset
-  location =  zipcodes %>% filter(zip == zip_input)
-  
-  
-  # No zipcode provided yet by user, then return null
-  if(nrow(location) > 1){
-    
-    return(NULL)
-  }
+  # now geocode itself error checks on zipcode input
+  location =  geocode_zip(zip_code = zipcode_input)
   
   
   user_latitude = location$lat
-  user_longitude = location$long
-  user_city = str_c(location$city, location$state, sep = ",")
- 
+  user_longitude = location$lng
   
-  # Generate plot 
-  plot_out = generate_plot(user_latitude, user_longitude, user_city )
+  reverse_zipcode_data = reverse_zipcode(location$zipcode)
   
-  
-  plot_out
-  
+  user_city_state = str_c(reverse_zipcode_data$major_city[[1]], reverse_zipcode_data$state[[1]], sep = ",")
 
-} # end location_plot_output()
+  
+} 
+
+location_plot_output(48307)
+
+# scratchwork
+
+############################################################
+# run get query for meteomatics temperature - 7 day difference
+
+meteomatics_username=''
+meteomatics_password=''
+
+# general API format of requests
+# https://api.meteomatics.com/<validdatetime>/<parameters>/<location>/<format>?<optionals>
+
+base_url = "api.meteomatics.com"
+
+date_today = lubridate::today()
+date_in_one_week = date_today + 7
+
+date_today_formatted = str_c(format_ISO8601(as.POSIXct(date_today, tz = "UTC")), 'Z')
+date_in_one_week_formatted = str_c(format_ISO8601(as.POSIXct(date_in_one_week, tz = "UTC")), 'Z')
+interval_formatted = str_c(date_today_formatted, date_in_one_week_formatted, sep='--')
+
+interval_step = 'PT1H'
+
+time_interval_syntax = str_c(interval_formatted, interval_step, sep=":")
+  
+# Using httr2 library
+
+# Instantaneous temperature at 2m above ground in degrees Fahrenheit
+temp_option = "t_2m:F"
+
+lat_long_formatted = str_c(user_latitude, user_longitude, sep=",")
+
+output_format = "json?"
+
+formatted_request_url = str_c(base_url, time_interval_syntax, temp_option, lat_long_formatted, output_format, sep='/')
+
+req <- request(formatted_request_url) |> req_auth_basic(username = meteomatics_username, password = meteomatics_password)
+
+# can dry run a request and set headers to False/True to debug
+req |> req_dry_run()
+req |> req_dry_run(redact_headers = FALSE)
 
 
-#----------Helper function to use latitude and longitude to get data from Dark Sky API,
-# generate plot of hourly temperature using weather forecast data----------#
-generate_plot <- function(user_lat, user_long, user_city){
-  
-  
-  #API request
-  secret_key = "<REPLACE WITH VALID SECRET KEY>"
-  
-  request = str_c(
-    # BASE URL
-    "https://api.darksky.net/forecast/",
-    secret_key, '/',
-    toString(user_lat), ',', 
-    toString(user_long), 
-    sep = "" )
-  
-  # Fetch Data!
-  response = fromJSON(request)
-  
-  # Extract time, temperature, current time information
-  temperature_list = response$hourly$data$temperature
-  time_list = response$hourly$data$time
-  timeStamp = response$currently$time
-  
-  # Ensure time is in EST
-  current_timeStamp = as_datetime(timeStamp, tz = "EST")
-  
-  # Generate titles for labeling plot
-  x = as.POSIXlt(current_timeStamp)
-  time_title = paste(x$hour,x$min, sep = ":")
-  date_title = paste(month(current_timeStamp), day(current_timeStamp), year(current_timeStamp), sep = "/")
-  
-  
-  #-- Analysis ---#
-  
-  # Create Data Table
-  df = tibble(time = time_list, temperature = temperature_list)
-  
-  # Convert epoch time to date time + add hour, weekday columns too
-  df = df %>% mutate(date_time = as_datetime(time, tz = "EST"), 
-                     time_hours = hour(date_time),
-                     time_label = paste(as.POSIXlt(date_time)$hour,
-                                        as.POSIXlt(date_time)$min, sep = ":"),
-                     # make hours sequential - range from 0 upto 36 hours
-                     time_full_hours = seq(0,nrow(df) - 1),
-                     week_day = as.factor(wday(date_time, label = T, abbr = F)))
-  
-  # Generate plot with added linear trend line
-  plot_title = str_c("Hourly Temperature Forecast in", user_city, "(as of", time_title, "on", date_title,")" ,sep = " ")
-  forecast_plot1 = df %>% ggplot(mapping = aes(x = time_full_hours , y = temperature), color = "blue") + 
-    geom_point(data = df, mapping = aes(x = time_full_hours, y = temperature, color = week_day)) + 
-    geom_smooth(method = "lm",color = "blue") +
-    
-    labs(x = "Time (in Hours)", 
-         y = "Temperature (in Degrees Fahrenheit)",
-         title = plot_title,
-         color = "Day of Week"
-    ) 
-  
-  forecast_plot1
-  
-} # end generate_plot()
+output = req_perform(req)
 
-#----------Helper function to generate leaflet plot of location----------#
-location_leaflet_output <- function(zip_input){
+# verbosity can be adjusted for output
+output_json = resp_body_json(output)
 
-  # Obtain zipcode from user and get associated entry in zipcode dataset
-  location =  zipcodes %>% filter(zip == zip_input)
-  
-  # No zipcode provided yet by user, then return null
-  if(nrow(location) > 1){
-    return(NULL)
-  }
 
-  user_latitude = location$lat
-  user_longitude = location$long
-  user_city = str_c(location$city, location$state, sep = ",")
-  
-  m <- leaflet() %>% addTiles() %>% addMarkers(lng = user_longitude,
-                                               lat = user_latitude)
-  m
-} # end location_leaflet_output()
+
+

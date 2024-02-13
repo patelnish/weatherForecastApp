@@ -7,9 +7,17 @@
 #----------- Load helper functions & load packages ---------------------#
 source("helpers.R")
 packagesList <- c("tidyverse", "lubridate", "stringr","jsonlite", 
-                  "usa", "modelr", "leaflet", "shiny" )
+                  "usa", "modelr", "leaflet", "shiny" , 'httr2', 'data.table', 
+                  'lubridate', 'stringr', 'jsonlite', 
+                   'sets', 'tidyr', 'utils', 'zipcodeR')
+
 lapply(packagesList, installPackages)
-data("zipcodes")
+
+# TODO: figure out better way to read in parameters
+meteomatics_username=''
+meteomatics_password=''
+
+
 #---------------------------------------------------------#
 
 ui <- fluidPage(

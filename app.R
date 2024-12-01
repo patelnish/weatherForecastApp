@@ -1,6 +1,6 @@
 # Nisha Patel
 # Code File to Create R Shiny App
-# App: Hourly Temperature Forecast (Powered by Dark Sky: https://darksky.net/poweredby/)
+# App: Hourly Temperature Forecast (Powered by Meteomatics)
 # Find helper functions in "helpers.R"
 
 
@@ -9,13 +9,14 @@ source("helpers.R")
 packagesList <- c("tidyverse", "lubridate", "stringr","jsonlite", 
                   "usa", "modelr", "leaflet", "shiny" , 'httr2', 'data.table', 
                   'lubridate', 'stringr', 'jsonlite', 
-                   'sets', 'tidyr', 'utils', 'zipcodeR')
+                   'sets', 'tidyr', 'utils', 'zipcodeR', 'rjson', 'conflicted')
 
 lapply(packagesList, installPackages)
+conflict_prefer("%>%", "dplyr")
 
-# TODO: figure out better way to read in parameters
-meteomatics_username=''
-meteomatics_password=''
+METEOMATICS_CREDS_JSON = fromJSON(file='meteomatics_creds.json')
+meteomatics_username= METEOMATICS_CREDS_JSON$username
+meteomatics_password= METEOMATICS_CREDS_JSON$password
 
 
 #---------------------------------------------------------#

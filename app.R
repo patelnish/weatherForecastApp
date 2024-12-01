@@ -14,7 +14,7 @@ packagesList <- c("tidyverse", "lubridate", "stringr","jsonlite",
 lapply(packagesList, installPackages)
 conflict_prefer("%>%", "dplyr")
 
-METEOMATICS_CREDS_JSON = fromJSON(file='meteomatics_creds.json')
+METEOMATICS_CREDS_JSON = rjson::fromJSON(file='meteomatics_creds.json')
 meteomatics_username= METEOMATICS_CREDS_JSON$username
 meteomatics_password= METEOMATICS_CREDS_JSON$password
 
@@ -63,7 +63,7 @@ ui <- fluidPage(
       ) , # end fluidRow
       
       # Note: Attribution to Dark Sky
-      fluidRow(tags$a(href = "https://darksky.net/poweredby/", "Powered by Dark Sky"))
+      fluidRow(tags$a(href = "https://www.meteomatics.com/en/weather-api/?ppc_keyword=meteomatics&utm_term=meteomatics&utm_campaign=Weather+API+(USA)&utm_source=adwords&utm_medium=ppc&hsa_acc=5001518620&hsa_cam=9941211960&hsa_grp=100297572883&hsa_ad=584187784980&hsa_src=g&hsa_tgt=kwd-901842709181&hsa_kw=meteomatics&hsa_mt=p&hsa_net=adwords&hsa_ver=3&gad_source=1&gclid=CjwKCAiAjKu6BhAMEiwAx4UsAowbs_Rl_QCIYbIbTJh9FG4eHlM8apL-ULuDr8yvLq_8voSGEP_ZgxoCgeoQAvD_BwE", "Powered by Meteomatics"))
       
     ), # end sidebar panel
     
@@ -101,7 +101,14 @@ server <- function(input, output){
   # After zip input, if user clicks forecast, then leaflet map of input location will be generated
   out_leaflet <- eventReactive(input$forecast, {
     
-    location_leaflet_output(input$zip)
+    location = geocode_zip(zip_code = input$zip)
+    
+    
+    reverse_zipcode_data = reverse_zipcode(location$zipcode)
+    user_city_state = str_c(reverse_zipcode_data$major_city[[1]], reverse_zipcode_data$state[[1]], sep = ",")
+    
+    leaflet() %>% addTiles() %>% 
+      addMarkers(location$lng, location$lat, popup = str_c(location$lat, location$lng, sep=","),label = user_city_state)
     
   })
   
@@ -124,7 +131,7 @@ server <- function(input, output){
     
     content = function(file) {
       
-      ggsave(file, out(), width = 10, height = 6, units = "in")
+      ggsave(file, width = 10, height = 6, units = "in")
       
       }
     

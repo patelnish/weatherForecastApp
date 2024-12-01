@@ -15,32 +15,36 @@ installPackages <- function(pack) {
   
 } # end installPackages()
 
-
-#----------Helper function to take in user zipcode input and get latitude and longitude
+#----------Helper function to take in user zipcode input, get latitude and longitude, query hourly temperature, and plot it
 location_plot_output <- function(zipcode_input){
   
-  # now geocode itself error checks on zipcode input
+  # geocode itself error checks on zipcode input
   location =  geocode_zip(zip_code = zipcode_input)
-  
   
   user_latitude = location$lat
   user_longitude = location$lng
   
   reverse_zipcode_data = reverse_zipcode(location$zipcode)
-  
   user_city_state = str_c(reverse_zipcode_data$major_city[[1]], reverse_zipcode_data$state[[1]], sep = ",")
 
+  api_request_output = run_api_request(user_latitude, user_longitude)
+  json_response = resp_body_json(api_request_output)
+  hourly_temp_data = json_response$data[[1]]$coordinates[[1]]$dates
+  hourly_temp_df = do.call(rbind.data.frame, hourly_temp_data)
   
-  # # Generate plot 
-  # plot_out = generate_plot(user_latitude, user_longitude, user_city )
-  # 
-  # 
-  # plot_out
+  # cast columns to expected dtype
+  hourly_temp_df$date = as_datetime(hourly_temp_df$date)
+  hourly_temp_df$temperature = as.numeric(hourly_temp_df$value)
+  
+  # Generate plot
+  plot_out = generate_plot(hourly_temp_df, user_city_state)
+
+  plot_out
   
 } 
 
 ############################################################
-# use latitue and longitude to run API request
+#----------Helper function to use latitude and longitude to run API request
 # general API format of requests
 # https://api.meteomatics.com/<validdatetime>/<parameters>/<location>/<format>?<optionals>
 run_api_request <- function(user_latitude, user_longitude) {
@@ -78,60 +82,59 @@ run_api_request <- function(user_latitude, user_longitude) {
   output = req_perform(req)
 }
 
-
-api_request_output = run_api_request(user_latitude, user_longitude)
-
-json_response = resp_body_json(api_request_output)
-
-hourly_temp_data = json_response$data[[1]]$coordinates[[1]]$dates
-hourly_temp_df = do.call(rbind.data.frame, hourly_temp_data)
-hourly_temp_df$date = as_datetime(hourly_temp_df$date)
-
-# Extract time, temperature, current time information
-temperature_list = as.numeric(hourly_temp_df$value)
-time_list = hourly_temp_df$date
-timeStamp = json_response$dateGenerated
-
-# Ensure time is in EST
-current_timeStamp = as_datetime(timeStamp, tz = "EST")
-
-# Generate titles for labeling plot
-x = as.POSIXlt(current_timeStamp)
-time_title = paste(x$hour,x$min, sep = ":")
-date_title = paste(lubridate::month(current_timeStamp), lubridate::day(current_timeStamp), lubridate::year(current_timeStamp), sep = "/")
-
-
-#-- Analysis ---#
-
-# Create Data Table
-df = tibble(time = time_list, temperature = temperature_list)
-
-# Convert epoch time to date time + add hour, weekday columns too
-df_full = df %>%  
-  dplyr::mutate(
+#----------Helper function to generate plot
+generate_plot <- function(hourly_temp_df, user_city_state){
+  
+  # Extract time, temperature, current time information
+  temperature_list = hourly_temp_df$temperature
+  time_list = hourly_temp_df$date
+  timeStamp = json_response$dateGenerated
+  
+  # Ensure time is in EST
+  current_timeStamp = as_datetime(timeStamp, tz = "EST")
+  
+  # Generate titles for labeling plot
+  x = as.POSIXlt(current_timeStamp)
+  time_title = paste(x$hour,x$min, sep = ":")
+  date_title = paste(lubridate::month(current_timeStamp), lubridate::day(current_timeStamp), lubridate::year(current_timeStamp), sep = "/")
+  
+  
+  #-- Analysis ---#
+  
+  # Create Data Table
+  df = tibble(time = time_list, temperature = temperature_list)
+  
+  # Convert epoch time to date time + add hour, weekday columns too
+  df_full = df %>%  
+    dplyr::mutate(
       date_time = as_datetime(time, tz = "EST"), 
       time_hours = lubridate::hour(date_time),
       time_label = paste(as.POSIXlt(date_time)$hour,
-                        as.POSIXlt(date_time)$min, sep = ":"),
-
-            # make hours sequential - range from 0 upto 36 hours
+                         as.POSIXlt(date_time)$min, sep = ":"),
+      
+      # make hours sequential - range from 0 upto 36 hours
       time_full_hours = seq(0,nrow(df) - 1),
       week_day = as.factor(lubridate::wday(time, label = TRUE, abbr = FALSE))
-  )
-
-# Generate plot with added linear trend line
-plot_title = str_c("Hourly Temperature Forecast in", user_city_state, "(as of", time_title, "on", date_title,")" ,sep = " ")
-forecast_plot1 = df_full %>% ggplot(mapping = aes(x = time_full_hours , y = temperature), color = "blue") + 
-  geom_point(data = df_full, mapping = aes(x = time_full_hours, y = temperature, color = week_day)) + 
-  geom_smooth(method = "lm",color = "blue") +
+    )
   
-  labs(x = "Time (in Hours)", 
-       y = "Temperature (in Degrees Fahrenheit)",
-       title = plot_title,
-       color = "Day of Week"
-  ) 
+  # Generate plot with added linear trend line
+  plot_title = str_c("Hourly Temperature Forecast in", user_city_state, "(as of", time_title, "on", date_title,")" ,sep = " ")
+  forecast_plot1 = df_full %>% ggplot(mapping = aes(x = time_full_hours , y = temperature), color = "blue") + 
+    geom_point(data = df_full, mapping = aes(x = time_full_hours, y = temperature, color = week_day)) + 
+    geom_smooth(method = "lm",color = "blue") +
+    
+    labs(x = "Time (in Hours)", 
+         y = "Temperature (in Degrees Fahrenheit)",
+         title = plot_title,
+         color = "Day of Week"
+    ) 
+  
+  forecast_plot1
 
-forecast_plot1
+}
+
+
+
 
 
 

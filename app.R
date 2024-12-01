@@ -63,7 +63,7 @@ ui <- fluidPage(
       ) , # end fluidRow
       
       # Note: Attribution to Dark Sky
-      fluidRow(tags$a(href = "https://www.meteomatics.com/en/weather-api/?ppc_keyword=meteomatics&utm_term=meteomatics&utm_campaign=Weather+API+(USA)&utm_source=adwords&utm_medium=ppc&hsa_acc=5001518620&hsa_cam=9941211960&hsa_grp=100297572883&hsa_ad=584187784980&hsa_src=g&hsa_tgt=kwd-901842709181&hsa_kw=meteomatics&hsa_mt=p&hsa_net=adwords&hsa_ver=3&gad_source=1&gclid=CjwKCAiAjKu6BhAMEiwAx4UsAowbs_Rl_QCIYbIbTJh9FG4eHlM8apL-ULuDr8yvLq_8voSGEP_ZgxoCgeoQAvD_BwE", "Powered by Meteomatics"))
+      fluidRow(tags$a(href = "https://www.meteomatics.com/en/weather-app/", "Powered by Meteomatics Weather API"))
       
     ), # end sidebar panel
     

@@ -15,10 +15,14 @@ installPackages <- function(pack) {
   
 } # end installPackages()
 
+
+# ----- credentials loading
+METEOMATICS_CREDS_JSON = rjson::fromJSON(file='meteomatics_creds.json')
+
 #----------Helper function to take in user zipcode input, get latitude and longitude, query hourly temperature, and plot it
 location_plot_output <- function(zipcode_input){
   
-  # geocode itself error checks on zipcode input
+  # geocode itself error checks on zipcode input if it is invalid
   location =  geocode_zip(zip_code = zipcode_input)
   
   user_latitude = location$lat
@@ -35,9 +39,10 @@ location_plot_output <- function(zipcode_input){
   # cast columns to expected dtype
   hourly_temp_df$date = as_datetime(hourly_temp_df$date)
   hourly_temp_df$temperature = as.numeric(hourly_temp_df$value)
+  request_timestamp = json_response$dateGenerated
   
   # Generate plot
-  plot_out = generate_plot(hourly_temp_df, user_city_state)
+  plot_out = generate_plot(hourly_temp_df, user_city_state, request_timestamp)
 
   plot_out
   
@@ -48,6 +53,9 @@ location_plot_output <- function(zipcode_input){
 # general API format of requests
 # https://api.meteomatics.com/<validdatetime>/<parameters>/<location>/<format>?<optionals>
 run_api_request <- function(user_latitude, user_longitude) {
+  
+  meteomatics_username= METEOMATICS_CREDS_JSON$username
+  meteomatics_password= METEOMATICS_CREDS_JSON$password
   
   base_url = "api.meteomatics.com"
   
@@ -83,12 +91,12 @@ run_api_request <- function(user_latitude, user_longitude) {
 }
 
 #----------Helper function to generate plot
-generate_plot <- function(hourly_temp_df, user_city_state){
+generate_plot <- function(hourly_temp_df, user_city_state, request_timestamp){
   
   # Extract time, temperature, current time information
   temperature_list = hourly_temp_df$temperature
   time_list = hourly_temp_df$date
-  timeStamp = json_response$dateGenerated
+  timeStamp = request_timestamp
   
   # Ensure time is in EST
   current_timeStamp = as_datetime(timeStamp, tz = "EST")

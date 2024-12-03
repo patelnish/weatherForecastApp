@@ -14,11 +14,6 @@ packagesList <- c("tidyverse", "lubridate", "stringr","jsonlite",
 lapply(packagesList, installPackages)
 conflict_prefer("%>%", "dplyr")
 
-METEOMATICS_CREDS_JSON = rjson::fromJSON(file='meteomatics_creds.json')
-meteomatics_username= METEOMATICS_CREDS_JSON$username
-meteomatics_password= METEOMATICS_CREDS_JSON$password
-
-
 #---------------------------------------------------------#
 
 ui <- fluidPage(
@@ -52,7 +47,7 @@ ui <- fluidPage(
       fluidRow(
         
         # Zip input, forecast, plot title input, and download plot buttons
-        column(6, numericInput(inputId = 'zip', label = "Enter Your Zipcode", value = 0
+        column(6, numericInput(inputId = 'zip', label = "Enter Your Zipcode (5 digits only)", value = 0
                                ),
                actionButton(inputId = 'forecast', label= 'Forecast')),
         

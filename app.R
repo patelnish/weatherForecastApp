@@ -1,15 +1,19 @@
 # Nisha Patel
 # Code File to Create R Shiny App
-# App: Hourly Temperature Forecast (Powered by Dark Sky: https://darksky.net/poweredby/)
+# App: Hourly Temperature Forecast (Powered by Meteomatics)
 # Find helper functions in "helpers.R"
 
 
 #----------- Load helper functions & load packages ---------------------#
 source("helpers.R")
 packagesList <- c("tidyverse", "lubridate", "stringr","jsonlite", 
-                  "usa", "modelr", "leaflet", "shiny" )
+                  "usa", "modelr", "leaflet", "shiny" , 'httr2', 'data.table', 
+                  'lubridate', 'stringr', 'jsonlite', 
+                   'sets', 'tidyr', 'utils', 'zipcodeR', 'rjson', 'conflicted')
+
 lapply(packagesList, installPackages)
-data("zipcodes")
+conflict_prefer("%>%", "dplyr")
+
 #---------------------------------------------------------#
 
 ui <- fluidPage(
@@ -43,7 +47,7 @@ ui <- fluidPage(
       fluidRow(
         
         # Zip input, forecast, plot title input, and download plot buttons
-        column(6, numericInput(inputId = 'zip', label = "Enter Your Zipcode", value = 0
+        column(6, numericInput(inputId = 'zip', label = "Enter Your Zipcode (5 digits only)", value = 0
                                ),
                actionButton(inputId = 'forecast', label= 'Forecast')),
         
@@ -54,7 +58,7 @@ ui <- fluidPage(
       ) , # end fluidRow
       
       # Note: Attribution to Dark Sky
-      fluidRow(tags$a(href = "https://darksky.net/poweredby/", "Powered by Dark Sky"))
+      fluidRow(tags$a(href = "https://www.meteomatics.com/en/weather-app/", "Powered by Meteomatics Weather API"))
       
     ), # end sidebar panel
     
@@ -92,7 +96,14 @@ server <- function(input, output){
   # After zip input, if user clicks forecast, then leaflet map of input location will be generated
   out_leaflet <- eventReactive(input$forecast, {
     
-    location_leaflet_output(input$zip)
+    location = geocode_zip(zip_code = input$zip)
+    
+    
+    reverse_zipcode_data = reverse_zipcode(location$zipcode)
+    user_city_state = str_c(reverse_zipcode_data$major_city[[1]], reverse_zipcode_data$state[[1]], sep = ",")
+    
+    leaflet() %>% addTiles() %>% 
+      addMarkers(location$lng, location$lat, popup = str_c(location$lat, location$lng, sep=","),label = user_city_state)
     
   })
   
@@ -115,7 +126,7 @@ server <- function(input, output){
     
     content = function(file) {
       
-      ggsave(file, out(), width = 10, height = 6, units = "in")
+      ggsave(file, width = 10, height = 6, units = "in")
       
       }
     
